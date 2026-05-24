@@ -192,19 +192,24 @@ def activity():
 def index():
     return jsonify({"system": "NIRA Secure", "status": "running", "version": "1.0"})
 
-# ── Consent routes ────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
+
+# ── Consent Gateway routes ────────────────────────────────────────────────────
 from ai.consent import (create_consent_request, citizen_respond,
-                        check_consent_status, get_nin_usage_history)
+                         check_consent_status, get_nin_usage_history)
 
 @app.route("/api/consent/request", methods=["POST"])
 def request_consent():
+    """Third party calls this to request NIN usage"""
     data = request.get_json()
-    citizen = Citizen.query.filter_by(nin=data.get("nin")).first()
+    nin  = data.get("nin")
+    citizen = Citizen.query.filter_by(nin=nin).first()
     if not citizen:
         return jsonify({"error": "NIN not found"}), 404
     result = create_consent_request(
         citizen_id   = citizen.id,
-        nin          = data.get("nin"),
+        nin          = nin,
         service_name = data.get("service_name"),
         service_type = data.get("service_type"),
         purpose      = data.get("purpose")
@@ -214,27 +219,29 @@ def request_consent():
 @app.route("/api/consent/respond", methods=["POST"])
 @jwt_required()
 def respond_consent():
+    """Citizen approves or denies — iris required to approve"""
     citizen_id = get_jwt_identity()
     citizen    = Citizen.query.get(citizen_id)
     data       = request.get_json()
     result, status = citizen_respond(
-        consent_id         = data.get("consent_id"),
-        decision           = data.get("decision"),
-        iris_hash_provided = data.get("iris_hash", "demo_iris_hash"),
-        stored_iris_hash   = citizen.iris_hash
+        consent_id          = data.get("consent_id"),
+        decision            = data.get("decision"),
+        iris_hash_provided  = data.get("iris_hash", "demo_iris_hash"),
+        stored_iris_hash    = citizen.iris_hash
     )
     return jsonify(result), status
 
 @app.route("/api/consent/status/<consent_id>", methods=["GET"])
 def consent_status(consent_id):
+    """Third party checks if approved"""
     return jsonify(check_consent_status(consent_id)), 200
 
 @app.route("/api/consent/history", methods=["GET"])
 @jwt_required()
 def consent_history():
+    """Citizen sees all NIN usage attempts"""
     citizen_id = get_jwt_identity()
     return jsonify(get_nin_usage_history(citizen_id)), 200
 
-# ── Start server ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
