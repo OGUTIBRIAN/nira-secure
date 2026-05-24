@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIRA Secure — Digital ID Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #00897B; --teal-light: #00BFA5; --teal-dark: #004D40;
+    --card-bg: #0f1923; --card-surface: #162130; --card-border: #1e3448;
+    --text-primary: #e8f4f8; --text-secondary: #7a9bb5; --text-muted: #3d5a73;
+    --secure-green: #00E676; --alert-amber: #FFB300; --danger-red: #FF1744;
+    --ug-yellow: #FCDC04; --ug-red: #D90000;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#060d14; color:var(--text-primary); font-family:'Inter',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,137,123,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,137,123,0.04) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .app { position:relative; z-index:1; max-width:420px; margin:0 auto; padding:0 0 100px; }
+
+  /* LOGIN SCREEN */
+  .login-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px; }
+  .login-logo { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; color:var(--teal-light); margin-bottom:8px; }
+  .login-sub { font-size:12px; color:var(--text-secondary); font-family:'IBM Plex Mono',monospace; letter-spacing:2px; margin-bottom:40px; }
+  .login-card { background:var(--card-surface); border:1px solid var(--card-border); border-radius:16px; padding:24px; width:100%; max-width:380px; }
+  .login-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; margin-bottom:20px; }
+  .field { margin-bottom:16px; }
+  .field label { font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; display:block; margin-bottom:6px; }
+  .field input { width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--card-border); border-radius:8px; padding:12px 14px; color:var(--text-primary); font-family:'IBM Plex Mono',monospace; font-size:13px; outline:none; transition:border 0.2s; }
+  .field input:focus { border-color:var(--teal); }
+  .btn-primary { width:100%; padding:14px; background:linear-gradient(135deg,var(--teal-dark),var(--teal)); border:none; border-radius:10px; color:white; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s; margin-top:8px; }
+  .btn-primary:hover { opacity:0.9; transform:translateY(-1px); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  .error-msg { background:rgba(255,23,68,0.1); border:1px solid rgba(255,23,68,0.3); border-radius:8px; padding:10px 14px; font-size:11px; color:var(--danger-red); font-family:'IBM Plex Mono',monospace; margin-top:12px; display:none; }
+
+  /* TOP NAV */
+  .topnav { display:flex; justify-content:space-between; align-items:center; padding:20px 20px 12px; border-bottom:1px solid var(--card-border); }
+  .nav-logo { font-family:'Syne',sans-serif; font-weight:800; font-size:18px; }
+  .nav-logo span { color:var(--teal-light); }
+  .nav-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--secure-green); font-family:'IBM Plex Mono',monospace; }
+  .pulse-dot { width:7px; height:7px; background:var(--secure-green); border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+  /* ID CARD */
+  .card-wrapper { padding:24px 20px 0; }
+  .id-card { background:linear-gradient(135deg,#1a2f45 0%,#0d1f2f 60%,#162540 100%); border-radius:20px; border:1px solid var(--card-border); padding:20px; position:relative; overflow:hidden; }
+  .card-flag { position:absolute; top:0; left:0; right:0; height:4px; display:flex; }
+  .card-flag div { flex:1; }
+  .f1{background:#1a1a1a} .f2{background:var(--ug-yellow)} .f3{background:var(--ug-red)} .f4{background:#e8e8e8} .f5{background:var(--teal)}
+  .card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-top:10px; margin-bottom:16px; }
+  .card-country { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-secondary); letter-spacing:3px; text-transform:uppercase; }
+  .card-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:800; }
+  .card-badge { background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.3); border-radius:6px; padding:4px 8px; font-size:9px; font-family:'IBM Plex Mono',monospace; color:var(--secure-green); }
+  .card-body { display:flex; gap:16px; }
+  .card-photo { width:64px; height:80px; border-radius:10px; background:linear-gradient(135deg,#1e3a52,#0d2236); border:1.5px solid var(--card-border); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; }
+  .card-info { flex:1; }
+  .card-label { font-size:8px; font-family:'IBM Plex Mono',monospace; color:var(--text-muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:2px; }
+  .card-value { font-family:'Syne',sans-serif; font-size:13px; font-weight:600; }
+  .card-value.large { font-size:17px; font-weight:800; }
+  .card-row { display:flex; gap:20px; margin-top:8px; }
+  .card-field { margin-bottom:8px; }
+  .card-footer { margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; }
+  .card-nin { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-secondary); }
+  .card-nin strong { color:var(--teal-light); font-size:12px; }
+  .bio-icons { display:flex; gap:8px; }
+  .bio-chip { width:28px; height:28px; border-radius:6px; border:1px solid rgba(0,191,165,0.3); background:rgba(0,137,123,0.1); display:flex; align-items:center; justify-content:center; font-size:13px; }
+
+  /* QR SECTION */
+  .section { padding:20px 20px 0; }
+  .section-title { font-family:'Syne',sans-serif; font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:2px; margin-bottom:14px; }
+  .qr-card { background:var(--card-surface); border:1px solid var(--card-border); border-radius:16px; padding:20px; }
+  .qr-top { display:flex; gap:16px; }
+  .qr-box { position:relative; width:120px; height:120px; flex-shrink:0; }
+  .qr-box canvas { border-radius:10px; display:block; width:120px!important; height:120px!important; }
+  .qr-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; border-radius:10px; background:rgba(6,13,20,0.85); font-size:28px; cursor:pointer; transition:all 0.3s; flex-direction:column; gap:4px; }
+  .qr-overlay.hidden { opacity:0; pointer-events:none; }
+  .qr-overlay span { font-size:9px; font-family:'IBM Plex Mono',monospace; color:var(--text-secondary); letter-spacing:1px; }
+  .qr-meta { flex:1; }
+  .status-pill { background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.25); border-radius:20px; padding:3px 10px; font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--secure-green); display:inline-block; margin-bottom:8px; }
+  .status-pill.expired { background:rgba(255,23,68,0.1); border-color:rgba(255,23,68,0.25); color:var(--danger-red); }
+  .timer-wrap { background:rgba(255,255,255,0.05); border-radius:4px; height:4px; overflow:hidden; margin-bottom:8px; }
+  .timer-bar { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--teal),var(--teal-light)); transition:width 1s linear,background 0.5s; }
+  .timer-bar.low { background:linear-gradient(90deg,var(--alert-amber),#FF6F00); }
+  .timer-bar.done { background:var(--danger-red); }
+  .timer-text { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-secondary); margin-bottom:6px; }
+  .timer-text strong { color:var(--text-primary); font-size:13px; }
+  .meta-label { font-size:9px; font-family:'IBM Plex Mono',monospace; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin-top:6px; }
+  .meta-val { font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--text-secondary); word-break:break-all; margin-top:2px; }
+  .divider { height:1px; background:rgba(255,255,255,0.05); margin:14px 0; }
+  .bio-row { display:flex; gap:10px; }
+  .bio-item { flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--card-border); border-radius:10px; padding:10px; text-align:center; transition:all 0.2s; }
+  .bio-item.active { border-color:var(--secure-green); background:rgba(0,230,118,0.05); }
+  .bio-item.scanning { border-color:var(--alert-amber); animation:borderPulse 0.8s infinite alternate; }
+  @keyframes borderPulse { from{border-color:var(--alert-amber)} to{border-color:rgba(255,179,0,0.3)} }
+  .bio-emoji { font-size:18px; margin-bottom:3px; }
+  .bio-lbl { font-size:8px; font-family:'IBM Plex Mono',monospace; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
+  .bio-state { font-size:9px; font-family:'IBM Plex Mono',monospace; color:var(--text-secondary); }
+  .bio-item.active .bio-state { color:var(--secure-green); }
+  .regen-btn { width:100%; margin-top:14px; padding:12px; background:rgba(0,137,123,0.15); border:1px solid rgba(0,191,165,0.3); border-radius:10px; color:var(--teal-light); font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:all 0.2s; }
+  .regen-btn:hover { background:rgba(0,137,123,0.3); }
+
+  /* CONSENT SECTION */
+  .consent-card { background:rgba(255,179,0,0.08); border:1px solid rgba(255,179,0,0.3); border-radius:14px; padding:16px; margin-top:14px; }
+  .consent-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--alert-amber); margin-bottom:8px; }
+  .consent-msg { font-size:11px; color:var(--text-secondary); line-height:1.5; margin-bottom:14px; font-family:'IBM Plex Mono',monospace; }
+  .consent-btns { display:flex; gap:10px; }
+  .btn-block { flex:1; padding:10px; background:rgba(255,23,68,0.15); border:1px solid rgba(255,23,68,0.4); border-radius:8px; color:var(--danger-red); font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.2s; }
+  .btn-allow { flex:1; padding:10px; background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.3); border-radius:8px; color:var(--secure-green); font-family:'IBM Plex Mono',monospace; font-size:11px; cursor:pointer; transition:all 0.2s; }
+
+  /* ACTIVITY LOG */
+  .log-list { display:flex; flex-direction:column; gap:8px; }
+  .log-item { background:var(--card-surface); border:1px solid var(--card-border); border-radius:10px; padding:12px 14px; display:flex; gap:12px; align-items:center; }
+  .log-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .log-icon.ok { background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.2); }
+  .log-icon.warn { background:rgba(255,179,0,0.1); border:1px solid rgba(255,179,0,0.2); }
+  .log-icon.danger { background:rgba(255,23,68,0.1); border:1px solid rgba(255,23,68,0.2); }
+  .log-content { flex:1; }
+  .log-title { font-size:12px; font-weight:500; }
+  .log-detail { font-size:10px; color:var(--text-secondary); font-family:'IBM Plex Mono',monospace; margin-top:2px; }
+  .log-time { font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace; }
+
+  /* BOTTOM NAV */
+  .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:420px; background:rgba(6,13,20,0.95); backdrop-filter:blur(20px); border-top:1px solid var(--card-border); display:flex; justify-content:space-around; padding:12px 0 20px; z-index:100; }
+  .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:0 16px; opacity:0.5; transition:opacity 0.2s; }
+  .nav-item.active { opacity:1; }
+  .nav-item.active .nav-icon { color:var(--teal-light); }
+  .nav-icon { font-size:20px; }
+  .nav-text { font-size:9px; font-family:'IBM Plex Mono',monospace; color:var(--text-secondary); letter-spacing:1px; }
+
+  .hidden { display:none!important; }
+  .loading { text-align:center; padding:40px; color:var(--text-secondary); font-family:'IBM Plex Mono',monospace; font-size:12px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-logo">NIRA<span style="color:var(--teal-light)">secure</span></div>
+  <div class="login-sub">REPUBLIC OF UGANDA · DIGITAL ID</div>
+  <div class="login-card">
+    <div class="login-title">Sign in to your wallet</div>
+    <div class="field">
+      <label>National ID Number (NIN)</label>
+      <input type="text" id="nin-input" placeholder="CM9903810AR8RD" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="pass-input" placeholder="••••••••" />
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">ENTER WALLET</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- MAIN WALLET (hidden until login) -->
+<div id="wallet-screen" class="app hidden">
+
+  <div class="topnav">
+    <div class="nav-logo">NIRA<span>secure</span></div>
+    <div class="nav-status"><div class="pulse-dot"></div>ENCRYPTED</div>
+  </div>
+
+  <!-- ID CARD -->
+  <div class="card-wrapper">
+    <div class="id-card">
+      <div class="card-flag"><div class="f1"></div><div class="f2"></div><div class="f3"></div><div class="f4"></div><div class="f5"></div></div>
+      <div class="card-header">
+        <div>
+          <div class="card-country">Republic of Uganda</div>
+          <div class="card-title">Digital National ID</div>
+        </div>
+        <div class="card-badge">🔐 VERIFIED</div>
+      </div>
+      <div class="card-body">
+        <div class="card-photo">👤</div>
+        <div class="card-info">
+          <div class="card-field">
+            <div class="card-label">Full Name</div>
+            <div class="card-value large" id="citizen-name">Loading...</div>
+          </div>
+          <div class="card-row">
+            <div class="card-field">
+              <div class="card-label">Date of Birth</div>
+              <div class="card-value" id="citizen-dob">—</div>
+            </div>
+          </div>
+          <div class="card-field" style="margin-top:6px">
+            <div class="card-label">District</div>
+            <div class="card-value" id="citizen-district">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-nin">NIN <strong id="citizen-nin">••••••••</strong></div>
+        <div class="bio-icons">
+          <div class="bio-chip">🫆</div>
+          <div class="bio-chip">👁</div>
+          <div class="bio-chip">🔑</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR SECTION -->
+  <div class="section">
+    <div class="section-title">Secure QR Code</div>
+    <div class="qr-card">
+      <div class="qr-top">
+        <div class="qr-box">
+          <canvas id="qr-canvas" width="120" height="120"></canvas>
+          <div class="qr-overlay" id="qr-overlay" onclick="revealQR()">
+            🔒<span>TAP TO SHOW</span>
+          </div>
+        </div>
+        <div class="qr-meta">
+          <div class="status-pill" id="qr-status-pill">● ACTIVE</div>
+          <div class="timer-text">Expires in: <strong id="timer-display">60s</strong></div>
+          <div class="timer-wrap"><div class="timer-bar" id="timer-bar"></div></div>
+          <div class="meta-label">Signature</div>
+          <div class="meta-val" id="sig-display">Generating...</div>
+          <div class="meta-label" style="margin-top:6px">Biometrics</div>
+          <div class="meta-val">FACE ✓ · IRIS ✓ · SIG ✓</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="bio-row">
+        <div class="bio-item active" id="bio-face"><div class="bio-emoji">🫣</div><div class="bio-lbl">Face</div><div class="bio-state">VERIFIED</div></div>
+        <div class="bio-item active" id="bio-iris"><div class="bio-emoji">👁️</div><div class="bio-lbl">Iris</div><div class="bio-state">VERIFIED</div></div>
+        <div class="bio-item active" id="bio-sig"><div class="bio-emoji">🔑</div><div class="bio-lbl">Signature</div><div class="bio-state">BOUND</div></div>
+      </div>
+      <button class="regen-btn" onclick="generateQR()">↻ REGENERATE SECURE QR</button>
+    </div>
+
+    <!-- CONSENT ALERT (shown when NIN use requested) -->
+    <div class="consent-card hidden" id="consent-alert">
+      <div class="consent-title">⚠️ NIN Usage Request</div>
+      <div class="consent-msg" id="consent-msg">A service wants to use your NIN.</div>
+      <div class="consent-btns">
+        <button class="btn-block" onclick="respondConsent('deny')">🚫 BLOCK</button>
+        <button class="btn-allow" onclick="respondConsent('approve')">✅ ALLOW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY LOG -->
+  <div class="section" style="margin-top:20px">
+    <div class="section-title">Activity Log</div>
+    <div class="log-list" id="activity-log">
+      <div class="loading">Loading activity...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav hidden" id="bottom-nav">
+  <div class="nav-item active"><div class="nav-icon">🪪</div><div class="nav-text">MY ID</div></div>
+  <div class="nav-item"><div class="nav-icon">📡</div><div class="nav-text">ACTIVITY</div></div>
+  <div class="nav-item"><div class="nav-icon">🛡️</div><div class="nav-text">SECURITY</div></div>
+  <div class="nav-item" onclick="doLogout()"><div class="nav-icon">🚪</div><div class="nav-text">LOGOUT</div></div>
+</div>
+
+<script>
+const API = "https://nira-secure.onrender.com";
+let authToken = null;
+let citizenData = null;
+let timerInterval = null;
+let timeLeft = 60;
+let currentConsentId = null;
+let qrRevealed = false;
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const nin  = document.getElementById('nin-input').value.trim();
+  const pass = document.getElementById('pass-input').value;
+  const btn  = document.getElementById('login-btn');
+  const err  = document.getElementById('login-error');
+
+  if (!nin || !pass) { showError('Please enter your NIN and password'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'SIGNING IN...';
+  err.style.display = 'none';
+
+  try {
+    const res  = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({nin, password: pass})
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      authToken   = data.token;
+      citizenData = data.citizen;
+      showWallet();
+    } else {
+      showError(data.error || 'Login failed');
+    }
+  } catch(e) {
+    showError('Cannot connect to server. Please wait 60 seconds and try again (server waking up).');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'ENTER WALLET';
+}
+
+function showError(msg) {
+  const err = document.getElementById('login-error');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+
+function doLogout() {
+  authToken = null; citizenData = null;
+  clearInterval(timerInterval);
+  document.getElementById('wallet-screen').classList.add('hidden');
+  document.getElementById('bottom-nav').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ── SHOW WALLET ────────────────────────────────────────────────────────────
+function showWallet() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('wallet-screen').classList.remove('hidden');
+  document.getElementById('bottom-nav').classList.remove('hidden');
+
+  // Populate ID card
+  document.getElementById('citizen-name').textContent = citizenData.name || 'OGUTI BRIAN';
+  document.getElementById('citizen-dob').textContent  = citizenData.date_of_birth || '25.10.1999';
+  document.getElementById('citizen-district').textContent = citizenData.district || 'Luweero';
+  document.getElementById('citizen-nin').textContent  = citizenData.nin || 'CM99••••RD';
+
+  generateQR();
+  loadActivity();
+}
+
+// ── QR GENERATION ──────────────────────────────────────────────────────────
+async function generateQR() {
+  clearInterval(timerInterval);
+  qrRevealed = false;
+  document.getElementById('qr-overlay').classList.remove('hidden');
+  document.getElementById('qr-overlay').innerHTML = '🔒<span>TAP TO SHOW</span>';
+  document.getElementById('sig-display').textContent = 'Generating...';
+  document.getElementById('qr-status-pill').textContent = '● ACTIVE';
+  document.getElementById('qr-status-pill').className = 'status-pill';
+
+  simulateBioScan();
+
+  try {
+    const res  = await fetch(`${API}/api/qr/generate`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${authToken}`}
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      document.getElementById('sig-display').textContent = data.token_hash.substring(0,16) + '...';
+      drawQR(data.token_hash);
+      startTimer(60);
+    }
+  } catch(e) {
+    document.getElementById('sig-display').textContent = 'Server offline';
+    drawQR('offline-demo-token-' + Date.now());
+    startTimer(60);
+  }
+}
+
+function revealQR() {
+  qrRevealed = true;
+  document.getElementById('qr-overlay').classList.add('hidden');
+}
+
+function startTimer(seconds) {
+  timeLeft = seconds;
+  updateTimerUI();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerUI();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById('qr-status-pill').textContent = '✕ EXPIRED';
+      document.getElementById('qr-status-pill').className = 'status-pill expired';
+      document.getElementById('qr-overlay').classList.remove('hidden');
+      document.getElementById('qr-overlay').innerHTML = '⏱<span>EXPIRED</span>';
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const pct = (timeLeft / 60) * 100;
+  const bar = document.getElementById('timer-bar');
+  document.getElementById('timer-display').textContent = timeLeft + 's';
+  bar.style.width = pct + '%';
+  bar.className = 'timer-bar' + (timeLeft <= 15 ? ' low' : '') + (timeLeft <= 0 ? ' done' : '');
+}
+
+function simulateBioScan() {
+  ['bio-face','bio-iris','bio-sig'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.className = 'bio-item';
+    el.querySelector('.bio-state').textContent = 'PENDING';
+    setTimeout(() => { el.className = 'bio-item scanning'; el.querySelector('.bio-state').textContent = 'SCANNING'; }, i * 500);
+    setTimeout(() => { el.className = 'bio-item active'; el.querySelector('.bio-state').textContent = id === 'bio-sig' ? 'BOUND' : 'VERIFIED'; }, i * 500 + 900);
+  });
+}
+
+// ── QR CANVAS DRAWING ──────────────────────────────────────────────────────
+function drawQR(data) {
+  const canvas = document.getElementById('qr-canvas');
+  const ctx = canvas.getContext('2d');
+  const size = 120;
+  ctx.fillStyle = '#0d1f2f';
+  ctx.fillRect(0, 0, size, size);
+  const hash = [...data].reduce((a,c) => (a * 31 + c.charCodeAt(0)) | 0, 0);
+  const modules = 21;
+  const cellSize = (size - 16) / modules;
+  const offset = 8;
+  function drawFinder(x, y) {
+    ctx.fillStyle = '#00BFA5';
+    ctx.fillRect(x, y, cellSize*7, cellSize*7);
+    ctx.fillStyle = '#0d1f2f';
+    ctx.fillRect(x+cellSize, y+cellSize, cellSize*5, cellSize*5);
+    ctx.fillStyle = '#00BFA5';
+    ctx.fillRect(x+cellSize*2, y+cellSize*2, cellSize*3, cellSize*3);
+  }
+  drawFinder(offset, offset);
+  drawFinder(offset + cellSize*14, offset);
+  drawFinder(offset, offset + cellSize*14);
+  ctx.fillStyle = '#00897B';
+  const seeded = Math.abs(hash);
+  for (let r = 0; r < modules; r++) {
+    for (let c = 0; c < modules; c++) {
+      const inFinder = (r<8&&c<8)||(r<8&&c>12)||(r>12&&c<8);
+      if (!inFinder) {
+        const bit = ((seeded >> ((r * modules + c) % 29)) ^ (r * 3 + c * 7)) & 1;
+        if (bit) {
+          ctx.beginPath();
+          ctx.roundRect(offset + c*cellSize + 0.5, offset + r*cellSize + 0.5, cellSize-1, cellSize-1, 1);
+          ctx.fill();
+        }
+      }
+    }
+  }
+  ctx.fillStyle = '#0d1f2f';
+  ctx.fillRect(size/2-10, size/2-10, 20, 20);
+  ctx.fillStyle = '#00BFA5';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', size/2, size/2);
+}
+
+// ── ACTIVITY LOG ───────────────────────────────────────────────────────────
+async function loadActivity() {
+  const log = document.getElementById('activity-log');
+  const defaultLogs = [
+    {icon:'ok', emoji:'✅', title:'QR verified — Kampala Central', detail:'Biometrics confirmed', time:'Today'},
+    {icon:'ok', emoji:'✅', title:'Login from this device', detail:'Iris auth · Luweero · Uganda', time:'Today'},
+    {icon:'warn', emoji:'⚠️', title:'NIN lookup attempted', detail:'Unknown service · Blocked', time:'Yesterday'},
+    {icon:'danger', emoji:'🚨', title:'BetPawa NIN request — BLOCKED', detail:'You denied this request', time:'2 days ago'},
+  ];
+  log.innerHTML = defaultLogs.map(l => `
+    <div class="log-item">
+      <div class="log-icon ${l.icon}">${l.emoji}</div>
+      <div class="log-content">
+        <div class="log-title">${l.title}</div>
+        <div class="log-detail">${l.detail}</div>
+      </div>
+      <div class="log-time">${l.time}</div>
+    </div>
+  `).join('');
+}
+
+// ── CONSENT ────────────────────────────────────────────────────────────────
+async function respondConsent(decision) {
+  if (!currentConsentId) return;
+  try {
+    const res = await fetch(`${API}/api/consent/respond`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${authToken}`},
+      body: JSON.stringify({consent_id: currentConsentId, decision})
+    });
+    const data = await res.json();
+    document.getElementById('consent-alert').classList.add('hidden');
+    const log = document.getElementById('activity-log');
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+      <div class="log-icon ${decision==='deny'?'danger':'ok'}">${decision==='deny'?'🚫':'✅'}</div>
+      <div class="log-content">
+        <div class="log-title">${data.service} — ${decision==='deny'?'BLOCKED':'ALLOWED'}</div>
+        <div class="log-detail">${data.message}</div>
+      </div>
+      <div class="log-time">just now</div>`;
+    log.insertBefore(item, log.firstChild);
+  } catch(e) { console.error(e); }
+}
+
+// Enter key support
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pass-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+});
+</script>
+</body>
+</html>
