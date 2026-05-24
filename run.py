@@ -245,3 +245,9 @@ from flask import send_from_directory
 @app.route("/wallet")
 def wallet():
     return send_from_directory("static", "index.html")
+
+from flask import send_from_directory
+
+@app.route("/wallet")
+def wallet():
+    return send_from_directory("static", "index.html")
